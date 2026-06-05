@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jchandler187/portkeep/internal/portscanner"
+	"github.com/jchandler187/portkeep/internal/sshclient"
 	"github.com/spf13/cobra"
 )
 
@@ -220,6 +221,22 @@ func scopeIcon(scope string) string {
 }
 
 func remoteScan(host, sshKey string) ([]portscanner.OpenPort, error) {
-	// TODO: implement SSH remote scan via sshclient package
-	return nil, fmt.Errorf("remote scan not yet implemented (use --node localhost)")
+	client := sshclient.NewClient(host, 22, sshKey)
+	if err := client.Connect(); err != nil {
+		return nil, fmt.Errorf("SSH connect: %w", err)
+	}
+	defer client.Close()
+
+	output, err := client.ScanPorts()
+	if err != nil {
+		return nil, fmt.Errorf("SSH scan: %w", err)
+	}
+
+	// Parse the remote ss/netstat output
+	ports, err := parseSSOutput(output)
+	if err != nil {
+		return nil, fmt.Errorf("parse output: %w", err)
+	}
+
+	return ports, nil
 }
