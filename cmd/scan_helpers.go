@@ -12,22 +12,25 @@ func parseSSOutput(output string) ([]portscanner.OpenPort, error) {
 	var ports []portscanner.OpenPort
 	scanner := bufio.NewScanner(strings.NewReader(output))
 
-	// Skip header lines
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "Netid") || strings.HasPrefix(line, "State") {
-			continue
-		}
-		if strings.HasPrefix(line, "tcp") || strings.HasPrefix(line, "udp") {
-			break
-		}
-	}
-
-	// Parse each line
+	headerDone := false
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
+		}
+
+		// Skip header lines
+		if !headerDone {
+			if strings.HasPrefix(line, "Netid") || strings.HasPrefix(line, "State") {
+				continue
+			}
+			// First non-header line — start parsing
+			if strings.HasPrefix(line, "tcp") || strings.HasPrefix(line, "udp") {
+				headerDone = true
+				// DON'T skip this line — fall through to parse it
+			} else {
+				continue
+			}
 		}
 
 		fields := strings.Fields(line)

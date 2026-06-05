@@ -62,6 +62,10 @@ func scanLinux() ([]OpenPort, error) {
 		}
 	}
 
+	// Resolve PIDs and process names via /proc inode matching
+	resolveProcInfo(deduped, "tcp")
+	resolveProcInfo(deduped, "udp")
+
 	return deduped, nil
 }
 
@@ -239,4 +243,129 @@ func splitAddrPort(s string) (int, string) {
 		return 0, ""
 	}
 	return port, addr
+}
+
+// resolveProcInfo walks /proc to find which PID owns each listening socket inode.
+func resolveProcInfo(ports []OpenPort, proto string) {
+	portMap := make(map[int][]int)
+	for i, p := range ports {
+		if p.Protocol == proto {
+			portMap[p.Port] = append(portMap[p.Port], i)
+		}
+	}
+	if len(portMap) == 0 {
+		return
+	}
+
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		pid, err := strconv.Atoi(entry.Name())
+		if err != nil {
+			continue
+		}
+
+		cmdline, _ := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+		procName := processName(string(cmdline))
+
+		// Read /proc/PID/fd/ for socket inodes this PID holds
+		fdDir := fmt.Sprintf("/proc/%d/fd", pid)
+		fdEntries, err := os.ReadDir(fdDir)
+		if err != nil {
+			continue
+		}
+
+		for _, fd := range fdEntries {
+			link, err := os.Readlink(fmt.Sprintf("%s/%s", fdDir, fd.Name()))
+			if err != nil {
+				continue
+			}
+			if !strings.HasPrefix(link, "socket:[") {
+				continue
+			}
+			inodeStr := strings.TrimPrefix(link, "socket:[")
+			inodeStr = strings.TrimRight(inodeStr, "]")
+			inode, err := strconv.ParseUint(inodeStr, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			// Check if this inode matches a port in /proc/net/{tcp,udp}
+			portNum := findPortForInode(proto, inode, portMap)
+			if portNum > 0 {
+				if indices, ok := portMap[portNum]; ok {
+					for _, idx := range indices {
+						if ports[idx].PID == 0 {
+							ports[idx].PID = pid
+							ports[idx].Process = procName
+						}
+					}
+			}
+			}
+		}
+	}
+}
+
+// findPortForInode reads /proc/net/{tcp,udp} to find which port an inode corresponds to.
+func findPortForInode(proto string, inode uint64, portMap map[int][]int) int {
+	path := "/proc/net/" + proto
+	f, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Scan() // skip header
+
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 10 {
+			continue
+		}
+
+		// Parse local address to get port
+		localAddr := fields[1]
+		parts := strings.SplitN(localAddr, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		portNum, err := strconv.ParseInt(parts[1], 16, 32)
+		if err != nil {
+			continue
+		}
+
+		if _, ok := portMap[int(portNum)]; !ok {
+			continue
+		}
+
+		entryInode, err := strconv.ParseUint(fields[9], 10, 64)
+		if err != nil {
+			continue
+		}
+		if entryInode == inode {
+			return int(portNum)
+		}
+	}
+	return 0
+}
+
+// processName extracts the basename from a /proc/PID/cmdline string.
+func processName(cmdline string) string {
+	if cmdline == "" {
+		return ""
+	}
+	parts := strings.SplitN(cmdline, "\x00", 2)
+	exe := parts[0]
+	idx := strings.LastIndex(exe, "/")
+	if idx >= 0 {
+		return exe[idx+1:]
+	}
+	return exe
 }
