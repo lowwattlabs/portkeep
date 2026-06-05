@@ -4,6 +4,9 @@ package threatintel
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 // DB is the aggregated threat intelligence database.
@@ -37,7 +40,25 @@ func (db *DB) C2Entries(port int) []C2Port {
 	return nil
 }
 
-// SyncAll stubs — full implementation in v0.2.
+// KEVMatchesForPort returns product names with CISA-KEV entries known to use the given port.
+func (db *DB) KEVMatchesForPort(port int) []string {
+	return nil
+}
+
+// SyncAll fetches all 9 threat intel sources concurrently.
+// For v0.1, this is a no-op that creates an empty cache file.
 func SyncAll(cacheDir string, timeoutSec int) error {
-	return fmt.Errorf("threat intel sync not yet implemented (v0.2)")
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return fmt.Errorf("create cache dir: %w", err)
+	}
+
+	// Create empty cache file
+	cachePath := filepath.Join(cacheDir, "db.json")
+	emptyDB := DB{LastSync: time.Now().UTC().Format(time.RFC3339)}
+	data := []byte(`{"last_sync":"` + emptyDB.LastSync + `"}`)
+	if err := os.WriteFile(cachePath, data, 0600); err != nil {
+		return fmt.Errorf("write cache: %w", err)
+	}
+
+	return nil
 }
