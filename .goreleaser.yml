@@ -1,0 +1,50 @@
+builds:
+  - id: portkeep
+    main: ./cmd/portkeep
+    binary: portkeep
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+
+nfpms:
+  - id: packages
+    formats:
+      - deb
+      - rpm
+    maintainer: Jason Chandler <jchandler187@gmail.com>
+    description: Port management + security for self-hosted infrastructure
+    license: MIT
+
+brews:
+  - repository:
+      owner: jchandler187
+      name: homebrew-tap
+    folder: Formula
+    homepage: https://github.com/jchandler187/portkeep
+    description: Port management + security for self-hosted infrastructure

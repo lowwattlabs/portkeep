@@ -1,0 +1,58 @@
+# PortKeep Example Config
+
+nodes:
+  node1:
+    host: 127.0.0.1
+    labels:
+      - prod
+  node2:
+    host: 192.168.1.86
+    ssh_key: ~/.ssh/id_ed25519
+    labels:
+      - dev
+
+ranges:
+  system: [1, 1023]
+  reserved: [1024, 4999]
+  dashboard: [5000, 9999]
+  ephemeral: [10000, 65535]
+
+segments:
+  loopback:
+    - 127.0.0.0/8
+    - ::1/128
+  lan:
+    - 192.168.1.0/24
+    - 10.0.0.0/8
+  tailscale:
+    - 100.64.0.0/10
+
+alerts:
+  destinations:
+    telegram:
+      chat_id: "6148810724"
+      bot_token: ${TELEGRAM_BOT_TOKEN}
+  rules:
+    - on: rogue
+      destination: telegram
+    - on: bind-change
+      destination: telegram
+    - on: score-change
+      threshold: 15
+      destination: telegram
+
+scan:
+  interval: 300
+  include_docker: false
+  nmap_path: /usr/bin/nmap
+
+nvd:
+  cache_dir: ~/.portkeep/nvd-cache
+  refresh_days: 7
+
+shodan:
+  api_key: ${SHODAN_API_KEY}
+  cache_hours: 24
+
+compliance:
+  templates_dir: ~/.portkeep/compliance

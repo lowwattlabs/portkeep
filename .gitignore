@@ -1,0 +1,34 @@
+# Binaries
+/bin/
+/portkeep
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DB (local only)
+*.db
+*.db-wal
+*.db-shm
+
+# Config with secrets
+config.yaml
+
+# NVD cache
+nvd-cache/
