@@ -72,17 +72,25 @@ All commands support `--json` for scripts and `--quiet` for cron.
 
 ## Install
 
+**Homebrew (macOS / Linux):**
 ```bash
-# From source (requires Go 1.22+)
+brew tap jchandler187/tap
+brew install portkeep
+```
+
+**From binary:**
+```bash
+# Download from https://github.com/jchandler187/portkeep/releases/latest
+curl -sSL https://github.com/jchandler187/portkeep/releases/download/v0.1.0/portkeep_0.1.0_linux_amd64.tar.gz | tar xz
+sudo mv portkeep /usr/local/bin/
+```
+
+**From source (requires Go 1.22+):**
+```bash
 git clone https://github.com/jchandler187/portkeep.git
 cd portkeep && go build -o portkeep .
 sudo mv portkeep /usr/local/bin/
-
-# Cross-compile
-GOOS=linux GOARCH=arm64 go build -o portkeep-linux-arm64 .
 ```
-
-Pre-built binaries available on the [releases page](https://github.com/jchandler187/portkeep/releases).
 
 ## Multi-node setup
 
