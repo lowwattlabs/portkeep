@@ -129,7 +129,7 @@ and bind mismatches (declared loopback, actually on wider scope).`,
 				}
 			}
 
-			if !quietMode {
+			if !quietMode && !jsonOutput {
 				if nodeDrift == 0 {
 					fmt.Printf("%s — clean\n", nodeName)
 				} else {
@@ -146,11 +146,14 @@ and bind mismatches (declared loopback, actually on wider scope).`,
 		}
 
 		if jsonOutput {
-			data, _ := json.MarshalIndent(allEvents, "", "  ")
+			output := map[string]interface{}{
+				"drift_found":    totalDrift > 0,
+				"total_events":  totalDrift,
+				"events":        allEvents,
+			}
+			data, _ := json.MarshalIndent(output, "", "  ")
 			fmt.Println(string(data))
-		}
-
-		if !quietMode {
+		} else if !quietMode {
 			fmt.Printf("\n%d total drift events", totalDrift)
 			if totalDrift > 0 {
 				fmt.Print(" · exit 1")
