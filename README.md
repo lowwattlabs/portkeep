@@ -197,7 +197,35 @@ Cloud-hosted attack surface management platforms typically cost $100+/month per 
 
 **v0.1.0** — Core features implemented: scan, claim, drift, audit, sync (6-of-9 sources without Auth-Key), alert, daemon, history, multi-node SSH. Tested on Linux amd64.
 
-Roadmap:
+## OpenClaw Plugin
+
+PortKeep is also available as an [OpenClaw tool plugin](https://clawhub.ai/jchandler187/portkeep). Install it and any OpenClaw agent can scan, audit, drift-check, and claim ports — including remote nodes — without knowing the CLI.
+
+```bash
+openclaw plugins install portkeep
+```
+
+Six tools: `portkeep_scan`, `portkeep_audit`, `portkeep_drift`, `portkeep_claim`, `portkeep_list`, `portkeep_sync`.
+
+## Install
+
+Download the latest binary from [GitHub Releases](https://github.com/jchandler187/portkeep/releases) for your platform:
+
+```bash
+# Linux amd64
+curl -sL https://github.com/jchandler187/portkeep/releases/latest/download/portkeep_linux_amd64.tar.gz | tar xz
+sudo mv portkeep /usr/local/bin/
+
+# macOS (Apple Silicon)
+curl -sL https://github.com/jchandler187/portkeep/releases/latest/download/portkeep_darwin_arm64.tar.gz | tar xz
+sudo mv portkeep /usr/local/bin/
+
+# Verify
+portkeep version
+```
+
+## Roadmap
+
 - Process-hash correlation against MalwareBazaar (v0.2)
 - CVE lookup command (`portkeep cve`) cross-referencing running services with KEV/EPSS
 - Service fingerprinting (nmap -sV integration)

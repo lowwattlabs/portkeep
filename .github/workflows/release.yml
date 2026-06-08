@@ -18,13 +18,39 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
 
-      - uses: goreleaser/goreleaser-action@v6
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME}"
+          COMMIT="$(git rev-parse --short HEAD)"
+          BUILT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          PLATFORMS=(
+            "linux/amd64"
+            "linux/arm64"
+            "darwin/amd64"
+            "darwin/arm64"
+            "windows/amd64"
+          )
+          for PLATFORM in "${PLATFORMS[@]}"; do
+            OS="${PLATFORM%%/*}"
+            ARCH="${PLATFORM##*/}"
+            SUFFIX=""
+            if [ "$OS" = "windows" ]; then SUFFIX=".exe"; fi
+            echo "Building $OS/$ARCH..."
+            CGO_ENABLED=0 GOOS="$OS" GOARCH="$ARCH" go build -trimpath \
+              -ldflags="-s -w -X github.com/jchandler187/portkeep/cmd.version=$VERSION -X github.com/jchandler187/portkeep/cmd.commit=$COMMIT -X github.com/jchandler187/portkeep/cmd.buildDate=$BUILT" \
+              -o "dist/portkeep_${OS}_${ARCH}${SUFFIX}" ./cmd/
+          done
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          files: dist/*
+          generate_release_notes: true
